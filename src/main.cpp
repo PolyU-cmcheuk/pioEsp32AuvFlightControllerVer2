@@ -15,6 +15,7 @@ Timer timer; // default resolution = MILLIS, use MILLIS for tickers over 70 min
 
 // motion sensor related libs
 #include <motionSensor.h>
+MotionSensor mpu6050;
 
 // thruster, servo control related libs
 #include <thrusterControl.h>
@@ -246,6 +247,9 @@ void setup()
   display.println("AUV Controller");
   display.display();
 
+  // init motion sensors
+  mpu6050.init();
+
   // init the first time for later computation for loop time usage
   timer.start();
 }
@@ -256,6 +260,12 @@ void loop()
   // setup display
   display.clearDisplay();
   display.setCursor(0, 0);
+
+  // update sensor measurements
+  mpu6050.update();
+
+  // w/a/s/d/ control handling here, controlling from either program or keyboard
+  WASDKeyCounterUpdate();
 
   // disarm all thrusters
   if (isKillSwitchActivated())
@@ -296,9 +306,6 @@ void loop()
     display.println(thrusterLF.getPwmValue());
   }
 
-  // w/a/s/d/ control handling here
-  WASDKeyCounterUpdate();
-
   // test control by pot
   int potPin = 39;
   float potValueNormalized = testReadPotentionmeterNomalized(potPin, -1.0, 1.0);
@@ -333,8 +340,18 @@ void loop()
 
   Serial.print(time1);
   Serial.println();
+
   // print the time on OLEDd display
-  display.println(time1);
+  display.setCursor(60, 0);
+  display.print(time1);
+
+  // print the motion measurements on display
+  display.setCursor(0, 12);
+  display.print(mpu6050.getRobotPitch());
+  display.setCursor(40, 12);
+  display.print(mpu6050.getRobotYaw());
+  display.setCursor(80, 12);
+  display.print(mpu6050.getTemp());
 
   // OLED display consumes about 13ms below
   display.display();

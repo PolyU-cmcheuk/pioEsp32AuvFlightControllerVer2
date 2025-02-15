@@ -4,10 +4,11 @@
 // need to include arduino library for function: Delay(),
 #include <Arduino.h>
 
+#include <Wire.h>
 // motion sensor related libs
 #include <Adafruit_MPU6050.h>
 // #include <Adafruit_Sensor.h>
-#include <Wire.h>
+
 // AHRS lib
 #include <Adafruit_AHRS.h>
 
@@ -16,19 +17,23 @@ class MotionSensor
 public:
   MotionSensor(void) : ahrs(ahrsGain) // constructor
   {
-    mpuInitialized = mpu.begin(); // init MPU6050 sensor
-    if (mpuInitialized)
-    {
-      mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-      mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-      mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-      // set update frequency for AHRS filter
-      ahrs.begin(framerate);
-    }
   }
   ~MotionSensor(void) {}; // destructor
 
   // function prototypes
+  bool init(void);
+  void update(void);
+  // getta functions
+  float getTemp(void);
+  float getRobotGyroX(void);
+  float getRobotGyroY(void);
+  float getRobotGyroZ(void);
+  float getRobotAccX(void);
+  float getRobotAccY(void);
+  float getRobotAccZ(void);
+  float getRobotRoll(void);
+  float getRobotPitch(void);
+  float getRobotYaw(void);
 
 private:
   // mpu related parameters below
@@ -39,8 +44,8 @@ private:
   sensors_event_t a, g, temp; // mpu raw measurements
 
   // AHRS related parameters below
-  const int framerate = 100;
-  const float ahrsGain = 0.2; // need to manually tune this value according to the framerate to achieve fastest convergency
+  const int framerate = 50;
+  const float ahrsGain = 0.3; // need to manually tune this value according to the framerate to achieve fastest convergency
   Adafruit_Madgwick ahrs;     // gain of Madgwick filter, default=0.1,
 
   // update IMU, map IMU frame to Robot frame
@@ -54,6 +59,10 @@ private:
   float robotAccX;
   float robotAccY;
   float robotAccZ;
+  // robot roll pitch yaw angles, note that yaw angle may drift a lot
+  float robotRoll;
+  float robotPitch;
+  float robotYaw;
 };
 
 #endif // MOTIONSENSOR_H
