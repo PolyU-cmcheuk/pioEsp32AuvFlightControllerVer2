@@ -170,6 +170,7 @@ void WASDHandler()
   {
     char incomingByte = Serial.read();
     float speedSlow = 0.4;
+    float speedFast = 0.6;
     switch (incomingByte)
     {
     case 'w':
