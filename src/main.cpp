@@ -249,6 +249,8 @@ void setup()
 
   // init motion sensors
   mpu6050.init();
+  // calibrate gyro drift by simple averaging
+  mpu6050.calibrateGyro(20);
 
   // init the first time for later computation for loop time usage
   timer.start();

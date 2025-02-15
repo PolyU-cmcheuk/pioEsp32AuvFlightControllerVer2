@@ -13,6 +13,9 @@ bool MotionSensor::init(void)
     mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
     // set update frequency for AHRS filter
     ahrs.begin(framerate);
+
+    // calibrate gyro and acc
+    // require sensor / robot to keep still for a few seconds
   }
   return mpuInitialized;
 }
@@ -26,9 +29,9 @@ void MotionSensor::update(void)
   // IMU-Y --> Robot-Leftward (but Rightward is positive)
   // IMU-Z --> Robot-Downward positive, z=0 at surface
   // note: ahrs lib requires gyro input in deg/s, not rad/s
-  robotGyroX = g.gyro.x * rad2deg;
-  robotGyroY = g.gyro.y * rad2deg;
-  robotGyroZ = g.gyro.z * rad2deg;
+  robotGyroX = (g.gyro.x - gyroBiasX) * rad2deg;
+  robotGyroY = (g.gyro.y - gyroBiasY) * rad2deg;
+  robotGyroZ = (g.gyro.z - gyroBiasZ) * rad2deg;
   robotAccX = a.acceleration.x;
   robotAccY = a.acceleration.y;
   robotAccZ = a.acceleration.z;
@@ -38,6 +41,30 @@ void MotionSensor::update(void)
   robotRoll = ahrs.getRoll();
   robotPitch = -ahrs.getPitch();
   robotYaw = ahrs.getYaw();
+}
+/**
+ * simple gyro calibration by computing gyro average when staying still
+ */
+void MotionSensor::calibrateGyro(int numSamples = 20)
+{
+  // inputguard
+  if (numSamples <= 0)
+    numSamples = 1;
+
+  float tempGyroX = 0, tempGyroY = 0, tempGyroZ = 0;
+  for (int i = 0; i < numSamples; i++)
+  {
+    // read raw measurement from IMU
+    mpu.getEvent(&a, &g, &temp);
+    // compute sum
+    tempGyroX += g.gyro.x;
+    tempGyroY += g.gyro.y;
+    tempGyroZ += g.gyro.z;
+  }
+  // compute average
+  gyroBiasX = tempGyroX / numSamples;
+  gyroBiasY = tempGyroY / numSamples;
+  gyroBiasZ = tempGyroZ / numSamples;
 }
 // getta functions
 float MotionSensor::getTemp(void) { return temp.temperature; }

@@ -23,6 +23,7 @@ public:
   // function prototypes
   bool init(void);
   void update(void);
+  void calibrateGyro(int numSamples);
   // getta functions
   float getTemp(void);
   float getRobotGyroX(void);
@@ -48,17 +49,16 @@ private:
   const float ahrsGain = 0.3; // need to manually tune this value according to the framerate to achieve fastest convergency
   Adafruit_Madgwick ahrs;     // gain of Madgwick filter, default=0.1,
 
+  // variables to
+  float gyroBiasX = 0, gyroBiasY = 0, gyroBiasZ = 0;
+
   // update IMU, map IMU frame to Robot frame
   // IMU-X --> Robot-Forward
   // IMU-Y --> Robot-Leftward (but Rightward is positive)
   // IMU-Z --> Robot-Downward positive, z=0 at surface
   // note: ahrs lib requires gyro input in deg/s, not rad/s
-  float robotGyroX;
-  float robotGyroY;
-  float robotGyroZ;
-  float robotAccX;
-  float robotAccY;
-  float robotAccZ;
+  float robotGyroX, robotGyroY, robotGyroZ;
+  float robotAccX, robotAccY, robotAccZ;
   // robot roll pitch yaw angles, note that yaw angle may drift a lot
   float robotRoll;
   float robotPitch;
