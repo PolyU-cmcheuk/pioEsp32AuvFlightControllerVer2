@@ -245,11 +245,13 @@ void setup()
   display.setCursor(0, 0);
   display.println("AUV Controller");
   display.display();
+
+  // init the first time for later computation for loop time usage
+  timer.start();
 }
 
 void loop()
 {
-  timer.start();
 
   // setup display
   display.clearDisplay();
@@ -324,17 +326,17 @@ void loop()
   Serial.print(isKillSwitchActivated());
   Serial.print(" || ");
 
-  // OLED display consumes about 13ms below
-  // need to refresh display
-  display.display();
-
+  // read time and compute usage
   timer.stop();
   uint time1 = timer.read();
+  timer.start();
 
   Serial.print(time1);
   Serial.println();
   // print the time on OLEDd display
   display.println(time1);
+
+  // OLED display consumes about 13ms below
   display.display();
 
   // delay(10);

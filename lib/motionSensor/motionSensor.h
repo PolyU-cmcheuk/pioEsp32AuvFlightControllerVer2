@@ -14,7 +14,7 @@
 class MotionSensor
 {
 public:
-  MotionSensor(void) : ahrs(ahrsGain)
+  MotionSensor(void) : ahrs(ahrsGain) // constructor
   {
     mpuInitialized = mpu.begin(); // init MPU6050 sensor
     if (mpuInitialized)
@@ -26,7 +26,7 @@ public:
       ahrs.begin(framerate);
     }
   }
-  ~MotionSensor(void) {};
+  ~MotionSensor(void) {}; // destructor
 
   // function prototypes
 
@@ -42,6 +42,18 @@ private:
   const int framerate = 100;
   const float ahrsGain = 0.2; // need to manually tune this value according to the framerate to achieve fastest convergency
   Adafruit_Madgwick ahrs;     // gain of Madgwick filter, default=0.1,
+
+  // update IMU, map IMU frame to Robot frame
+  // IMU-X --> Robot-Forward
+  // IMU-Y --> Robot-Leftward (but Rightward is positive)
+  // IMU-Z --> Robot-Downward positive, z=0 at surface
+  // note: ahrs lib requires gyro input in deg/s, not rad/s
+  float robotGyroX;
+  float robotGyroY;
+  float robotGyroZ;
+  float robotAccX;
+  float robotAccY;
+  float robotAccZ;
 };
 
 #endif // MOTIONSENSOR_H
