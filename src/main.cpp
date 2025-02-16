@@ -17,6 +17,10 @@ Timer timer; // default resolution = MILLIS, use MILLIS for tickers over 70 min
 #include <motionSensor.h>
 MotionSensor mpu6050;
 
+// water pressure sensor (bar30)
+#include <waterPressureSensor.h>
+WaterPressureSensor pressureSensor;
+
 // thruster, servo control related libs
 #include <thrusterControl.h>
 // thrusters (servo) related
@@ -252,6 +256,9 @@ void setup()
   // calibrate gyro drift by simple averaging
   mpu6050.calibrateGyro(20);
 
+  // init water pressure sensor
+  pressureSensor.init();
+
   // init the first time for later computation for loop time usage
   timer.start();
 }
@@ -265,6 +272,9 @@ void loop()
 
   // update sensor measurements
   mpu6050.update();
+
+  // // update pressure sensor (disabled for faster framerate)
+  // pressureSensor.read();
 
   // w/a/s/d/ control handling here, controlling from either program or keyboard
   WASDKeyCounterUpdate();
@@ -298,42 +308,51 @@ void loop()
     }
   }
 
+  // simple PID control here,
+  // forwardSpeed, rightwardSpeed is controlled directly as open-loop, no feedback here
+  // downwardSpeed may be controlled by open-loop (without sensor) or depth-pid control (with sensor)
+  // angle: roll control is disabled in our narrow frame
+  // angle: pitch control is by PID with pitch angle from motion-sensor
+  float pitchPid_PGain = 0.05;
+  float pitchPidCtrl = (0.0 - mpu6050.getRobotPitch()) * pitchPid_PGain;
+  // angle: yaw control by PID with yaw angle, with target angle input
+
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
   {
-    // float pwmNormalized = testPotNomalized * 2 - 1.0;
-    // setAllThrusterPwmNormalized(pwmNormalized);
-    // Serial.print(pwmNormalized);
-    // Serial.print(" || ");
+    // control
+    robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawSpeed);
+
+    // display pwm value for debugging
+    display.setCursor(0, 16);
     display.println(thrusterLF.getPwmValue());
   }
 
   // test control by pot
   int potPin = 39;
   float potValueNormalized = testReadPotentionmeterNomalized(potPin, -1.0, 1.0);
-  robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, 0, yawSpeed);
 
   Serial.print(potValueNormalized);
-  Serial.print(" || ");
-  Serial.print(thrusterLF.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterRF.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterLMU.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterRMU.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterLB.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterRB.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterLMD.getPwmValue());
-  Serial.print(" || ");
-  Serial.print(thrusterRMD.getPwmValue());
-  Serial.print(" || ");
+  // Serial.print(" || ");
+  // Serial.print(thrusterLF.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterRF.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterLMU.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterRMU.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterLB.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterRB.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterLMD.getPwmValue());
+  // Serial.print(" || ");
+  // Serial.print(thrusterRMD.getPwmValue());
+  // Serial.print(" || ");
 
-  Serial.print(isKillSwitchActivated());
-  Serial.print(" || ");
+  // Serial.print(isKillSwitchActivated());
+  // Serial.print(" || ");
 
   // read time and compute usage
   timer.stop();
@@ -348,12 +367,16 @@ void loop()
   display.print(time1);
 
   // print the motion measurements on display
-  display.setCursor(0, 12);
+  display.setCursor(0, 8);
   display.print(mpu6050.getRobotPitch());
-  display.setCursor(40, 12);
+  display.setCursor(40, 8);
   display.print(mpu6050.getRobotYaw());
-  display.setCursor(80, 12);
+  display.setCursor(80, 8);
   display.print(mpu6050.getTemp());
+
+  // // print water pressure and display
+  // display.setCursor(0, 16);
+  // display.print(pressureSensor.getDepth());
 
   // OLED display consumes about 13ms below
   display.display();

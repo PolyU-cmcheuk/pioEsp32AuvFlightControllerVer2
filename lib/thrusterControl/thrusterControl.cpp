@@ -240,8 +240,10 @@ bool ThrusterControl::setPwmValueNormalized(float pwmNormalized)
     pwmNormalized = inputMax;
   }
 
-  // adjust for CCW orientations, CW:+ve, CCW:-ve
-  if (_spinDirection == CCW)
+  // adjust for CW/CCW orientations,
+  // note: without ESC, CW:+ve, CCW:-ve
+  // note: with built-in ESC, CW:-ve, CCW:+ve
+  if (_spinDirection == CW)
   {
     pwmNormalized = -pwmNormalized;
   }
