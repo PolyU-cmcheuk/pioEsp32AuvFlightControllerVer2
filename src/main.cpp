@@ -316,9 +316,10 @@ void loop()
   float pitchPid_pGain = 0.05;
   float pitchPidCtrl = (0.0 - mpu6050.getRobotPitch()) * pitchPid_pGain;
   // angle: yaw control by PID with yaw angle, with target angle input
+  // need to take care about +/-ve from target input, gyro, and yaw control
   float yawPid_pGain = 0.01;
   float yawTargetCtrlGain = 20.0;
-  float yawPidCtrl = (yawSpeed * yawTargetCtrlGain - mpu6050.getRobotGyroZ()) * yawPid_pGain;
+  float yawPidCtrl = (yawSpeed * yawTargetCtrlGain + mpu6050.getRobotGyroZ()) * yawPid_pGain;
 
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
