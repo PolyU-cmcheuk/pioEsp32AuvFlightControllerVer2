@@ -313,15 +313,18 @@ void loop()
   // downwardSpeed may be controlled by open-loop (without sensor) or depth-pid control (with sensor)
   // angle: roll control is disabled in our narrow frame
   // angle: pitch control is by PID with pitch angle from motion-sensor
-  float pitchPid_PGain = 0.05;
-  float pitchPidCtrl = (0.0 - mpu6050.getRobotPitch()) * pitchPid_PGain;
+  float pitchPid_pGain = 0.05;
+  float pitchPidCtrl = (0.0 - mpu6050.getRobotPitch()) * pitchPid_pGain;
   // angle: yaw control by PID with yaw angle, with target angle input
+  float yawPid_pGain = 0.01;
+  float yawTargetCtrlGain = 20.0;
+  float yawPidCtrl = (yawSpeed * yawTargetCtrlGain - mpu6050.getRobotGyroZ()) * yawPid_pGain;
 
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
   {
     // control
-    robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawSpeed);
+    robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawPidCtrl);
 
     // display pwm value for debugging
     display.setCursor(0, 16);

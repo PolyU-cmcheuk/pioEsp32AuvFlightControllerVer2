@@ -37,10 +37,12 @@ void MotionSensor::update(void)
   robotAccZ = a.acceleration.z;
 
   // compute AHRS, also need to align the axis to robot frame coordinate system as aeroplane
+  // pitch up (nose up) about the robot-y-axis pointing to right to be +ve
+  // Z-axis pointing downward, resulting in different orientation
   ahrs.updateIMU(robotGyroX, robotGyroY, robotGyroZ, robotAccX, robotAccY, robotAccZ);
   robotRoll = ahrs.getRoll();
   robotPitch = -ahrs.getPitch();
-  robotYaw = ahrs.getYaw();
+  robotYaw = 360.0 - ahrs.getYaw();
 }
 /**
  * simple gyro calibration by computing gyro average when staying still
