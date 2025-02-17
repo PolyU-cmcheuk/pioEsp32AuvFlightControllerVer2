@@ -20,7 +20,7 @@ MotionSensor mpu6050;
 // water pressure sensor (bar30)
 #include <waterPressureSensor.h>
 WaterPressureSensor pressureSensor;
-float depthTarget = 0.0; // unit = m below water surface
+float depthTarget = -0.1; // unit = m below water surface, if(-ve): disabled depth hold mode
 
 // thruster, servo control related libs
 #include <thrusterControl.h>
@@ -107,6 +107,24 @@ void armAllThrusters(void)
   delay(initialDelayMs);
 }
 /**
+ * @brief speed control by keyboard / ASCII char input
+ *
+ */
+float forwardSpeed = 0.0;
+float rightwardSpeed = 0.0;
+float downwardSpeed = 0.0;
+float yawSpeed = 0.0;
+float pitchSpeed = 0.0;
+const int keyLiveCounter = 10; // e.g. 10 frame
+unsigned int forwardSpeedKeyLiveCounter = 0;
+unsigned int rightwardSpeedKeyLiveCounter = 0;
+unsigned int downwardSpeedKeyLiveCounter = 0;
+unsigned int yawSpeedKeyLiveCounter = 0;
+unsigned int pitchSpeedKeyLiveCounter = 0;
+// for setting target yaw angle
+float targetYaw = 0.0;
+
+/**
  * @brief
  *
  * @param forwardCtrl +ve
@@ -147,24 +165,6 @@ void robotSpeedCtrl(float forwardCtrl, float rightwardCtrl, float downwardCtrl, 
   thrusterLMD.setPwmValueNormalized(LMDvalue);
   thrusterRMD.setPwmValueNormalized(RMDvalue);
 }
-
-/**
- * @brief speed control by keyboard / ASCII char input
- *
- */
-float forwardSpeed = 0.0;
-float rightwardSpeed = 0.0;
-float downwardSpeed = 0.0;
-float yawSpeed = 0.0;
-float pitchSpeed = 0.0;
-const int keyLiveCounter = 10; // e.g. 10 frame
-unsigned int forwardSpeedKeyLiveCounter = 0;
-unsigned int rightwardSpeedKeyLiveCounter = 0;
-unsigned int downwardSpeedKeyLiveCounter = 0;
-unsigned int yawSpeedKeyLiveCounter = 0;
-unsigned int pitchSpeedKeyLiveCounter = 0;
-// for setting target yaw angle
-float targetYaw = 0.0;
 
 /**
  * @brief simple Serial event emulating keyboard control,
@@ -244,7 +244,14 @@ void WASDHandler()
       pitchSpeedKeyLiveCounter = keyLiveCounter;
       break;
 
-    case 'z': //
+    case 'z': // turn back 180 deg, specifically for SAUVC qualification task
+      targetYaw += 180.0;
+      if (targetYaw > 360)
+        targetYaw -= 360.0;
+      else if (targetYaw < 0.0)
+        targetYaw += 360.0;
+      break;
+    default: // nothing for default case
       break;
     }
   }
@@ -368,11 +375,16 @@ void loop()
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
   {
-    // control
-    // robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawPidCtrl);
-
-    // mode = depth hold + pitch stablized
-    robotSpeedCtrl(forwardSpeed, rightwardSpeed, depthHoldPidCtrl, 0, pitchPidCtrl, yawPidCtrl);
+    if (depthTarget >= 0.0)
+    {
+      // mode = depth hold + pitch stablized
+      robotSpeedCtrl(forwardSpeed, rightwardSpeed, depthHoldPidCtrl, 0, pitchPidCtrl, yawPidCtrl);
+    }
+    else
+    {
+      // mode = pitch stablized only
+      robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawPidCtrl);
+    }
 
     // display pwm value for debugging
     display.setCursor(0, 16);
