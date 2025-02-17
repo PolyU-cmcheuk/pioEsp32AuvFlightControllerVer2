@@ -18,8 +18,12 @@ public:
   // function prototypes
   bool init(void);
   void read(void);
+  void nonBlockReadD1Request(void);  // non blocking read D1 send request
+  void nonBlockReadD1Receive(void);  // non blocking read D1 receive data
+  void nonBlockReadD2Request(void);  // non blocking read D2 send request
+  void nonBlockReadD2Receive(void);  // non blocking read D2 receive data
 
-  // getta functions
+
   float getPressure(void);    // unit = mbar
   float getTemperature(void); // unit = degC
   float getDepth(void);       // unit = m (below water surface)

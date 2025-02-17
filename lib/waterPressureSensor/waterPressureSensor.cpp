@@ -1,4 +1,13 @@
+#include "MS5837.h"
 #include <waterPressureSensor.h>
+
+// copied from MS5837.cpp here in order to use some of the constants
+#define MS5837_ADDR               0x76  
+#define MS5837_RESET              0x1E
+#define MS5837_ADC_READ           0x00
+#define MS5837_PROM_READ          0xA0
+#define MS5837_CONVERT_D1_8192    0x4A
+#define MS5837_CONVERT_D2_8192    0x5A
 
 /**
  * Constructor and destructor
@@ -40,7 +49,69 @@ void WaterPressureSensor::read(void)
 {
   bar30.read();
 }
+/**
+ * @brief non blocking read functions, need to uncomment the "private:" keywords to use some of the variables inside
+ * 
+ * 
+ */
+void WaterPressureSensor::nonBlockReadD1Request(void)
+{
+  // Request D1 conversion
+	Wire.beginTransmission(MS5837_ADDR);
+	Wire.write(MS5837_CONVERT_D1_8192);
+	Wire.endTransmission();
 
+  // then need to wait for about 20ms before next read
+  // usually we can let the MCU run other codes which we are sure that
+  // they will last for sufficient time for data conversion
+}
+void WaterPressureSensor::nonBlockReadD1Receive(void)
+{
+  // Request D1 data
+	Wire.beginTransmission(MS5837_ADDR);
+	Wire.write(MS5837_ADC_READ);
+	Wire.endTransmission();
+
+ 	Wire.requestFrom(MS5837_ADDR,3);
+	bar30.D1 = 0;
+	bar30.D1 = Wire.read();
+	bar30.D1 = (bar30.D1 << 8) | Wire.read();
+	bar30.D1 = (bar30.D1 << 8) | Wire.read();
+
+  // then need to wait for about 20ms before next read
+  // usually we can let the MCU run other codes which we are sure that
+  // they will last for sufficient time for data conversion
+}
+void WaterPressureSensor::nonBlockReadD2Request(void)
+{
+  // Request D2 conversion
+	Wire.beginTransmission(MS5837_ADDR);
+	Wire.write(MS5837_CONVERT_D2_8192);
+	Wire.endTransmission();
+
+  // then need to wait for about 20ms before next read
+  // usually we can let the MCU run other codes which we are sure that
+  // they will last for sufficient time for data conversion
+}
+void WaterPressureSensor::nonBlockReadD2Receive(void)
+{
+  // request D2 data
+  Wire.beginTransmission(MS5837_ADDR);
+	Wire.write(MS5837_ADC_READ);
+	Wire.endTransmission();
+
+	Wire.requestFrom(MS5837_ADDR,3);
+	bar30.D2 = 0;
+	bar30.D2 = Wire.read();
+	bar30.D2 = (bar30.D2 << 8) | Wire.read();
+	bar30.D2 = (bar30.D2 << 8) | Wire.read();
+
+	bar30.calculate();
+
+  // then need to wait for about 20ms before next read
+  // usually we can let the MCU run other codes which we are sure that
+  // they will last for sufficient time for data conversion
+}
 /**
  * @brief
  *

@@ -162,6 +162,9 @@ unsigned int rightwardSpeedKeyLiveCounter = 0;
 unsigned int downwardSpeedKeyLiveCounter = 0;
 unsigned int yawSpeedKeyLiveCounter = 0;
 unsigned int pitchSpeedKeyLiveCounter = 0;
+// for setting target yaw angle
+float targetYaw = 0.0;
+
 /**
  * @brief simple Serial event emulating keyboard control,
  * w/a/s/d  := forward/rightward motion
@@ -176,6 +179,7 @@ void WASDHandler()
     char incomingByte = Serial.read();
     float speedSlow = 0.4;
     float speedFast = 0.6;
+    float targetYawIncrement = 5.0;
     switch (incomingByte)
     {
     case 'w':
@@ -203,12 +207,26 @@ void WASDHandler()
       downwardSpeedKeyLiveCounter = keyLiveCounter;
       break;
     case 'q':
-      yawSpeed = -speedSlow;
-      yawSpeedKeyLiveCounter = keyLiveCounter;
+      // // speed control mode
+      // yawSpeed = speedSlow;
+      // yawSpeedKeyLiveCounter = keyLiveCounter;
+      // // angular position control mode
+      targetYaw -= targetYawIncrement;
+      if(targetYaw > 360)
+        targetYaw -= 360.0;
+      else if(targetYaw < 0.0)
+        targetYaw += 360.0;
       break;
     case 'e':
-      yawSpeed = speedSlow;
-      yawSpeedKeyLiveCounter = keyLiveCounter;
+      // // speed control mode
+      // yawSpeed = speedSlow;
+      // yawSpeedKeyLiveCounter = keyLiveCounter;
+      // // angular position control mode
+      targetYaw += targetYawIncrement;
+      if(targetYaw > 360)
+        targetYaw -= 360.0;
+      else if(targetYaw < 0.0)
+        targetYaw += 360.0;
       break;
     case 't':
       pitchSpeed = speedSlow;
@@ -244,7 +262,7 @@ void setup()
   // for setting 921600 baudrate: -> open setting (UI) -> search "Serial monitor" -> custom baudrate -> "add item" -> type 921600 or higher rate
   Serial.begin(921600);
 
-  // init oled display
+  // init oled display360.0 - ahrs.getYaw();
   displayInit();
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -254,7 +272,7 @@ void setup()
   // init motion sensors
   mpu6050.init();
   // calibrate gyro drift by simple averaging
-  mpu6050.calibrateGyro(20);
+  mpu6050.calibrateGyro(30);
 
   // init water pressure sensor
   pressureSensor.init();
@@ -292,6 +310,10 @@ void loop()
     // just after re-enabling the kill-switch, previous mode should still be DISARMED
     if (thrusterArmMode == DISARMED)
     {
+      // added code for gyro calibration 
+      mpu6050.calibrateGyro(30);
+
+      // execute arming sequence
       thrusterArmMode = ARMING;
       // show status on display
       display.println("Arming");
@@ -316,10 +338,21 @@ void loop()
   float pitchPid_pGain = 0.05;
   float pitchPidCtrl = (0.0 - mpu6050.getRobotPitch()) * pitchPid_pGain;
   // angle: yaw control by PID with yaw angle, with target angle input
-  // need to take care about +/-ve from target input, gyro, and yaw control
-  float yawPid_pGain = 0.01;
-  float yawTargetCtrlGain = 20.0;
-  float yawPidCtrl = (yawSpeed * yawTargetCtrlGain + mpu6050.getRobotGyroZ()) * yawPid_pGain;
+  float yawPid_pGain = 0.1;
+  float yawError = targetYaw - mpu6050.getRobotYaw();
+  // handling for angle transition point
+  if(yawError > 180.0)
+    yawError -= 360;
+  if(yawError < -180.0)
+    yawError += 360.0;
+  // compute yawPid
+  float yawPidCtrl = yawError * yawPid_pGain;
+
+  // // yaw speed control mode, feedback by gyro speed
+  // float yawPid_pGain = 0.05;
+  // float yawTargetCtrlGain = 50.0;
+  // float yawPidCtrl = (yawSpeed * yawTargetCtrlGain + mpu6050.getRobotGyroZ()) * yawPid_pGain;
+
 
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
@@ -337,26 +370,7 @@ void loop()
   float potValueNormalized = testReadPotentionmeterNomalized(potPin, -1.0, 1.0);
 
   Serial.print(potValueNormalized);
-  // Serial.print(" || ");
-  // Serial.print(thrusterLF.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterRF.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterLMU.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterRMU.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterLB.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterRB.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterLMD.getPwmValue());
-  // Serial.print(" || ");
-  // Serial.print(thrusterRMD.getPwmValue());
-  // Serial.print(" || ");
 
-  // Serial.print(isKillSwitchActivated());
-  // Serial.print(" || ");
 
   // read time and compute usage
   timer.stop();
@@ -377,6 +391,7 @@ void loop()
   display.print(mpu6050.getRobotYaw());
   display.setCursor(80, 8);
   display.print(mpu6050.getTemp());
+  
 
   // // print water pressure and display
   // display.setCursor(0, 16);
