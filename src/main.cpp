@@ -20,6 +20,7 @@ MotionSensor mpu6050;
 // water pressure sensor (bar30)
 #include <waterPressureSensor.h>
 WaterPressureSensor pressureSensor;
+float depthTarget = 0.0; // unit = m below water surface
 
 // thruster, servo control related libs
 #include <thrusterControl.h>
@@ -199,12 +200,18 @@ void WASDHandler()
       rightwardSpeedKeyLiveCounter = keyLiveCounter;
       break;
     case 'r':
-      downwardSpeed = -speedSlow;
-      downwardSpeedKeyLiveCounter = keyLiveCounter;
+      // // manual speed control mode
+      // downwardSpeed = -speedSlow;
+      // downwardSpeedKeyLiveCounter = keyLiveCounter;
+      // depth-hold mode, incrementally update target depth value
+      depthTarget -= 0.1; // float up, z-axis pointing downward
       break;
     case 'f':
-      downwardSpeed = speedSlow;
-      downwardSpeedKeyLiveCounter = keyLiveCounter;
+      // // manual speed control mode
+      // downwardSpeed = speedSlow;
+      // downwardSpeedKeyLiveCounter = keyLiveCounter;
+      // depth-hold mode, incrementally update target depth value
+      depthTarget += 0.1; // float up, z-axis pointing downward
       break;
     case 'q':
       // // speed control mode
@@ -235,6 +242,9 @@ void WASDHandler()
     case 'g':
       pitchSpeed = -speedSlow;
       pitchSpeedKeyLiveCounter = keyLiveCounter;
+      break;
+
+    case 'z': //
       break;
     }
   }
@@ -334,8 +344,6 @@ void loop()
   }
 
   // simple PID control here,
-  // forwardSpeed, rightwardSpeed is controlled directly as open-loop, no feedback here
-  // downwardSpeed may be controlled by open-loop (without sensor) or depth-pid control (with sensor)
   // angle: roll control is disabled in our narrow frame
   // angle: pitch control is by PID with pitch angle from motion-sensor
   float pitchPid_pGain = 0.05;
@@ -350,23 +358,32 @@ void loop()
     yawError += 360.0;
   // compute yawPid
   float yawPidCtrl = yawError * yawPid_pGain;
+  // forwardSpeed, rightwardSpeed is controlled directly as open-loop, no feedback here
+  // downwardSpeed may be controlled by open-loop (without sensor) or depth-pid control (with sensor)
+  // depth-hold with pressure sensor and thruster control
+  float depthPid_pGain = 1.0;
+  float depthError = depthTarget - pressureSensor.getDepth();
+  float depthHoldPidCtrl = depthError * depthPid_pGain;
 
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
   {
     // control
-    robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawPidCtrl);
+    // robotSpeedCtrl(forwardSpeed, rightwardSpeed, downwardSpeed, 0, pitchPidCtrl, yawPidCtrl);
+
+    // mode = depth hold + pitch stablized
+    robotSpeedCtrl(forwardSpeed, rightwardSpeed, depthHoldPidCtrl, 0, pitchPidCtrl, yawPidCtrl);
 
     // display pwm value for debugging
     display.setCursor(0, 16);
     display.println(thrusterLF.getPwmValue());
   }
 
-  // test control by pot
-  int potPin = 39;
-  float potValueNormalized = testReadPotentionmeterNomalized(potPin, -1.0, 1.0);
+  // // test control by pot
+  // int potPin = 39;
+  // float potValueNormalized = testReadPotentionmeterNomalized(potPin, -1.0, 1.0);
 
-  Serial.print(potValueNormalized);
+  // Serial.print(potValueNormalized);
 
   // read time and compute usage
   timer.stop();
@@ -389,6 +406,10 @@ void loop()
   // print water pressure and display
   display.setCursor(0, 16);
   display.print(pressureSensor.getDepth());
+  display.setCursor(40, 16);
+  display.print(pressureSensor.getTemperature());
+  display.setCursor(80, 16);
+  display.print(depthTarget);
 
   // OLED display consumes about 13ms below
   display.display();
