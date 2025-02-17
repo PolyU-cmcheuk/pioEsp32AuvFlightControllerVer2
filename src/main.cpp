@@ -212,9 +212,9 @@ void WASDHandler()
       // yawSpeedKeyLiveCounter = keyLiveCounter;
       // // angular position control mode
       targetYaw -= targetYawIncrement;
-      if(targetYaw > 360)
+      if (targetYaw > 360)
         targetYaw -= 360.0;
-      else if(targetYaw < 0.0)
+      else if (targetYaw < 0.0)
         targetYaw += 360.0;
       break;
     case 'e':
@@ -223,9 +223,9 @@ void WASDHandler()
       // yawSpeedKeyLiveCounter = keyLiveCounter;
       // // angular position control mode
       targetYaw += targetYawIncrement;
-      if(targetYaw > 360)
+      if (targetYaw > 360)
         targetYaw -= 360.0;
-      else if(targetYaw < 0.0)
+      else if (targetYaw < 0.0)
         targetYaw += 360.0;
       break;
     case 't':
@@ -276,6 +276,7 @@ void setup()
 
   // init water pressure sensor
   pressureSensor.init();
+  pressureSensor.read(); // need to read once for getting valid data before next non-blocking read
 
   // init the first time for later computation for loop time usage
   timer.start();
@@ -293,6 +294,8 @@ void loop()
 
   // // update pressure sensor (disabled for faster framerate)
   // pressureSensor.read();
+  // update pressure sensor by non-blocking read function
+  pressureSensor.nonBlockRead();
 
   // w/a/s/d/ control handling here, controlling from either program or keyboard
   WASDKeyCounterUpdate();
@@ -310,7 +313,7 @@ void loop()
     // just after re-enabling the kill-switch, previous mode should still be DISARMED
     if (thrusterArmMode == DISARMED)
     {
-      // added code for gyro calibration 
+      // added code for gyro calibration
       mpu6050.calibrateGyro(30);
 
       // execute arming sequence
@@ -341,18 +344,12 @@ void loop()
   float yawPid_pGain = 0.1;
   float yawError = targetYaw - mpu6050.getRobotYaw();
   // handling for angle transition point
-  if(yawError > 180.0)
+  if (yawError > 180.0)
     yawError -= 360;
-  if(yawError < -180.0)
+  if (yawError < -180.0)
     yawError += 360.0;
   // compute yawPid
   float yawPidCtrl = yawError * yawPid_pGain;
-
-  // // yaw speed control mode, feedback by gyro speed
-  // float yawPid_pGain = 0.05;
-  // float yawTargetCtrlGain = 50.0;
-  // float yawPidCtrl = (yawSpeed * yawTargetCtrlGain + mpu6050.getRobotGyroZ()) * yawPid_pGain;
-
 
   // enable control only in ARMED mode
   if (thrusterArmMode == ARMED)
@@ -371,7 +368,6 @@ void loop()
 
   Serial.print(potValueNormalized);
 
-
   // read time and compute usage
   timer.stop();
   uint time1 = timer.read();
@@ -383,7 +379,6 @@ void loop()
   // print the time on OLEDd display
   display.setCursor(60, 0);
   display.print(time1);
-
   // print the motion measurements on display
   display.setCursor(0, 8);
   display.print(mpu6050.getRobotPitch());
@@ -391,11 +386,9 @@ void loop()
   display.print(mpu6050.getRobotYaw());
   display.setCursor(80, 8);
   display.print(mpu6050.getTemp());
-  
-
-  // // print water pressure and display
-  // display.setCursor(0, 16);
-  // display.print(pressureSensor.getDepth());
+  // print water pressure and display
+  display.setCursor(0, 16);
+  display.print(pressureSensor.getDepth());
 
   // OLED display consumes about 13ms below
   display.display();
